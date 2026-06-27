@@ -285,40 +285,58 @@ const ConsultationModal = ({ isOpen, onClose }) => {
                   <select name="spaceType" value={formData.spaceType} onChange={handleChange} className="w-full bg-white border border-[#2C4C3B]/10 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#C85A3D]/50 transition-all text-[#2C4C3B]">
                     <option>Residential Garden</option>
                     <option>Balcony / Terrace</option>
-                    <option>Corporate Office</option>
-                    <option>Public / Community Space</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-[#2C4C3B]/70 mb-2">Est. Size (sq ft)</label>
-                  <input name="size" value={formData.size} onChange={handleChange} type="text" className="w-full bg-white border border-[#2C4C3B]/10 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#C85A3D]/50 transition-all text-[#2C4C3B]" placeholder="e.g. 500" />
-                </div>
-              </div>
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-[#2C4C3B]/70 mb-2">What are your ecological goals?</label>
-                <textarea name="message" value={formData.message} onChange={handleChange} rows="3" className="w-full bg-white border border-[#2C4C3B]/10 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#C85A3D]/50 transition-all text-[#2C4C3B] resize-none" placeholder="Looking to reduce stress, improve air quality, or build a sensory garden..."></textarea>
-              </div>
-              <div className="flex gap-3 mt-4">
-                <Button type="button" variant="outline" onClick={() => setStep(1)} className="px-6" disabled={isSubmitting}>Back</Button>
-                <Button type="submit" variant="primary" className="flex-1" isLoading={isSubmitting}>
-                  {isSubmitting ? 'Sending...' : 'Request Consultation'}
-                </Button>
-              </div>
-            </form>
-          </FadeInSection>
-        )}
+// 4.1 Multi-Step Consultation Modal
+const ConsultationModal = ({ isOpen, onClose }) => {
+  const [step, setStep] = useState(1);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formData, setFormData] = useState({ name: '', email: '', phone: '', spaceType: 'Residential', size: '', message: '' });
 
-        {step === 3 && (
-          <FadeInSection direction="none" className="text-center py-10 space-y-4">
-            <div className="w-20 h-20 bg-[#C85A3D]/10 rounded-full flex items-center justify-center mx-auto mb-6">
-              <CheckCircle size={40} className="text-[#C85A3D]" />
-            </div>
-            <h3 className="text-3xl font-['Playfair_Display',serif] text-[#2C4C3B]">Request Sent!</h3>
-            <p className="text-[#2C4C3B]/70 max-w-sm mx-auto">
-              Your details have been securely transmitted to our team. We will review your space requirements and be in touch shortly.
-            </p>
-          </FadeInSection>
+  if (!isOpen) return null;
+
+  const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
+  const handleNext = (e) => { e.preventDefault(); setStep(2); };
+  
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    const payload = {
+      access_key: "7e75877f-8124-441e-8e43-4a1e70c69ba5",
+      subject: `New Consultation Request: ${formData.name}`,
+      from_name: formData.name,
+      email: formData.email,
+      phone: formData.phone,
+      space_type: formData.spaceType,
+      size_sq_ft: formData.size,
+      message: formData.message,
+    };
+
+    try {
+      const response = await fetch("https://api.web3forms.com/submit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (response.ok) {
+        setStep(3);
+        setTimeout(() => { onClose(); setStep(1); setFormData({ name: '', email: '', phone: '', spaceType: 'Residential', size: '', message: '' }); }, 3000);
+      } else { alert("Something went wrong."); }
+    } catch (error) { alert("Network error."); } finally { setIsSubmitting(false); }
+  };
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[#2C4C3B]/80 backdrop-blur-sm transition-opacity">
+      <div className="bg-[#FAF7F2] rounded-[30px] p-8 md:p-10 max-w-xl w-full shadow-2xl relative">
+        <button onClick={onClose} className="absolute top-6 right-6 p-2"><X size={20} /></button>
+        {step < 3 && (
+          <div className="flex items-center gap-2 mb-8">
+            <div className={`h-2 flex-1 rounded-full ${step >= 1 ? 'bg-[#C85A3D]' : 'bg-[#2C4C3B]/10'}`}></div>
+            <div className={`h-2 flex-1 rounded-full ${step >= 2 ? 'bg-[#C85A3D]' : 'bg-[#2C4C3B]/10'}`}></div>
+          </div>
         )}
+        {step === 1 && ( /* ... Your Step 1 form code here ... */ )}
+        {step === 2 && ( /* ... Your Step 2 form code here ... */ )}
+        {step === 3 && ( /* ... Your Step 3 success code here ... */ )}
       </div>
     </div>
   );
