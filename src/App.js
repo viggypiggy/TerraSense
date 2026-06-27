@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 
 // --- IMPORT YOUR LOGO HERE ---
-import logo from './logo.svg';
+import logo from './logo.svg'; 
 import TerraAI from './components/TerraAI';
 
 // ==========================================
