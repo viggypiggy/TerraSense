@@ -8,7 +8,7 @@ import {
 
 // --- IMPORT YOUR LOGO HERE ---
 import logo from './logo.svg';
-
+import TerraAI from './components/TerraAI';
 // ==========================================
 // 1. DATA & CONSTANTS
 // ==========================================
@@ -630,7 +630,7 @@ export default function App() {
     <div className="min-h-screen bg-[#E8DFD0] text-[#2C4C3B] font-['Inter',sans-serif] selection:bg-[#C85A3D] selection:text-white overflow-x-hidden relative">
       
       <ConsultationModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
-      <ChatWidget />
+      <TerraAI/>
 
       {/* --- 1. NAVIGATION --- */}
       <nav className={`fixed w-full z-[80] transition-all duration-500 ${isScrolled ? 'bg-[#E8DFD0]/95 backdrop-blur-md shadow-sm py-3' : 'bg-transparent py-6'}`}>
