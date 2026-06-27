@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Leaf, Cpu, ArrowRight, ArrowUpRight, Droplet, Sun, Wind, ChevronRight, Menu, X } from 'lucide-react';
 
+// --- IMPORT YOUR UPLOADED SVG LOGO HERE ---
+import logo from './logo.svg';
+
 // --- CUSTOM HOOKS ---
 const useScrollReveal = (threshold = 0.1) => {
   const [isVisible, setIsVisible] = useState(false);
@@ -23,60 +26,7 @@ const useScrollReveal = (threshold = 0.1) => {
   return [ref, isVisible];
 };
 
-// --- BRAND ASSETS & EXACT LOGO ---
-// Beautifully crafted SVG matching the exact fingerprint & leaf proportions
-const TerraSenseLogo = ({ className = "w-12 h-12", variant = "full-color" }) => {
-  const fpColor = variant === "full-color" ? "#BA5939" : "currentColor";
-  const leafColor = variant === "full-color" ? "#1A532C" : "currentColor";
-
-  return (
-    <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
-      <defs>
-        <mask id="leaf-mask">
-          <rect width="100" height="100" fill="white" />
-          {/* Vein cutout */}
-          <path d="M 38 86 Q 52 72 73 51" stroke="black" strokeWidth="2.5" strokeLinecap="round" fill="none" />
-        </mask>
-        <mask id="fp-mask">
-          <rect width="100" height="100" fill="white" />
-          {/* Mask to precisely hide the fingerprint lines underneath the solid leaf */}
-          <path d="M 36 88 C 40 80, 44 74, 46 70 C 46 54, 58 44, 80 43 C 71 62, 57 73, 48 76 C 44 80, 40 85, 36 88 Z" fill="black" stroke="black" strokeWidth="3" strokeLinejoin="round" />
-        </mask>
-      </defs>
-
-      {/* 1. Concentric Fingerprint Arches */}
-      <g mask="url(#fp-mask)" stroke={fpColor} strokeWidth="3.5" strokeLinecap="round" fill="none">
-        {/* Top disconnected dash */}
-        <path d="M 40 18 Q 48 15 56 18" />
-        
-        {/* Outer rings */}
-        <path d="M 15 75 C 10 50, 18 28, 42 24 C 55 21, 68 28, 76 40" />
-        <path d="M 22 80 C 16 58, 25 36, 44 32 C 55 29, 66 36, 71 48" />
-        <path d="M 29 85 C 24 65, 32 44, 46 40 C 56 37, 64 44, 66 54" />
-        <path d="M 36 89 C 32 72, 39 52, 48 48 C 55 45, 60 52, 62 60" />
-        
-        {/* Inner loop */}
-        <path d="M 43 92 C 40 78, 46 60, 51 56 C 56 53, 58 59, 58 66" />
-        
-        {/* Bottom right peeking lines (interrupted by leaf) */}
-        <path d="M 52 92 Q 58 87 64 78" />
-        <path d="M 59 95 Q 65 91 71 83" />
-        <path d="M 66 96 Q 71 93 76 87" />
-        
-        {/* Bottom left small dash */}
-        <path d="M 28 92 Q 33 94 38 93" />
-      </g>
-
-      {/* 2. Biophilic Leaf */}
-      <path 
-        d="M 36 88 C 40 80, 44 74, 46 70 C 46 54, 58 44, 80 43 C 71 62, 57 73, 48 76 C 44 80, 40 85, 36 88 Z" 
-        fill={leafColor} 
-        mask="url(#leaf-mask)"
-      />
-    </svg>
-  );
-};
-
+// --- BRAND ASSETS ---
 const WaveDivider = ({ fill = "#E8DFD0", className = "", position = "bottom" }) => {
   const isTop = position === "top";
   return (
@@ -145,10 +95,14 @@ export default function App() {
       <nav className={`fixed w-full z-50 transition-all duration-500 ${isScrolled ? 'bg-[#E8DFD0]/95 backdrop-blur-md shadow-sm py-4' : 'bg-transparent py-6'}`}>
         <div className="container mx-auto px-6 md:px-12 flex justify-between items-center">
           
-          {/* Updated Two-Tone Brand Logotype */}
           <div className="flex items-center gap-3 cursor-pointer group">
-            <TerraSenseLogo className="w-10 h-10 transform group-hover:scale-105 transition-transform duration-300" />
-            <span className="text-[1.65rem] font-bold tracking-tight mt-1">
+            {/* 1. NAVIGATION LOGO */}
+            <img 
+              src={logo} 
+              alt="TerraSense Logo" 
+              className="w-10 h-10 object-contain transform group-hover:scale-105 transition-transform duration-300" 
+            />
+            <span className="text-[1.65rem] font-bold tracking-tight mt-1 hidden sm:block">
               <span className="text-[#C85A3D]">Terra</span><span className="text-[#2C4C3B]">Sense</span>
             </span>
           </div>
@@ -225,8 +179,14 @@ export default function App() {
               <div className="relative aspect-square max-w-md mx-auto">
                 <div className="absolute inset-0 bg-[#C85A3D]/5 rounded-full scale-110" />
                 <div className="relative z-10 w-full h-full flex items-center justify-center border border-[#2C4C3B]/10 rounded-full bg-white/40 shadow-xl backdrop-blur-sm p-16 group">
-                   {/* Using the newly accurate scalable logo here */}
-                   <TerraSenseLogo className="w-full h-full drop-shadow-lg transform group-hover:scale-105 transition-transform duration-700" />
+                   
+                   {/* 2. IDENTITY SECTION LOGO */}
+                   <img 
+                    src={logo} 
+                    alt="TerraSense Identity Logo" 
+                    className="w-full h-full object-contain drop-shadow-lg transform group-hover:scale-105 transition-transform duration-700" 
+                   />
+
                 </div>
                 
                 {/* Connecting Line Annotations (Desktop Only) */}
@@ -495,8 +455,15 @@ export default function App() {
           <div className="grid md:grid-cols-4 gap-12 py-12 border-t border-[#E8DFD0]/10">
             <div className="md:col-span-2">
               <div className="flex items-center gap-3 mb-6">
-                {/* Monochrome variant for the dark footer */}
-                <TerraSenseLogo className="w-10 h-10" variant="monochrome-light" />
+                
+                {/* 3. FOOTER LOGO */}
+                {/* Notice the `brightness-0 invert` classes here - they turn your SVG white automatically so it looks good on the dark green background! */}
+                <img 
+                  src={logo} 
+                  alt="TerraSense Footer Logo" 
+                  className="w-10 h-10 object-contain brightness-0 invert opacity-90" 
+                />
+                
                 <span className="text-2xl font-bold tracking-tight text-white">
                   TerraSense
                 </span>
