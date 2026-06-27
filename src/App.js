@@ -1,9 +1,9 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
-  Leaf, Cpu, ArrowRight, ArrowUpRight, Droplet, Sun, Wind, 
-  ChevronRight, ChevronLeft, Menu, X, MessageCircle, Send, 
+  Leaf, Cpu, ArrowRight, ArrowUpRight, Droplet, 
+  ChevronRight, Menu, X, MessageCircle, Send, 
   Phone, Mail, MapPin, CheckCircle, HelpCircle, Activity, 
-  BarChart2, Camera, Star, Quote, Plus, Minus, ThermometerSun
+  Camera, Star, Quote, Plus, Minus, ThermometerSun
 } from 'lucide-react';
 
 // --- IMPORT YOUR LOGO HERE ---
@@ -75,7 +75,7 @@ const MOCK_SENSOR_DATA = [
   { time: '12:00', moisture: 38, light: 90, health: 88 },
   { time: '14:00', moisture: 35, light: 95, health: 87 },
   { time: '16:00', moisture: 30, light: 70, health: 85 },
-  { time: '18:00', moisture: 55, light: 30, health: 92 }, // Post watering
+  { time: '18:00', moisture: 55, light: 30, health: 92 },
   { time: '20:00', moisture: 52, light: 5, health: 94 },
 ];
 
@@ -103,23 +103,6 @@ const useScrollReveal = (threshold = 0.1) => {
   }, [threshold]);
 
   return [ref, isVisible];
-};
-
-const useWindowSize = () => {
-  const [windowSize, setWindowSize] = useState({
-    width: undefined,
-    height: undefined,
-  });
-
-  useEffect(() => {
-    function handleResize() {
-      setWindowSize({ width: window.innerWidth, height: window.innerHeight });
-    }
-    window.addEventListener("resize", handleResize);
-    handleResize();
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
-  return windowSize;
 };
 
 // ==========================================
@@ -194,6 +177,7 @@ const Button = ({ children, variant = 'primary', size = 'md', className = '', is
 // 4.1 Multi-Step Consultation Modal
 const ConsultationModal = ({ isOpen, onClose }) => {
   const [step, setStep] = useState(1);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({ name: '', email: '', phone: '', spaceType: 'Residential', size: '', message: '' });
 
   if (!isOpen) return null;
@@ -202,19 +186,46 @@ const ConsultationModal = ({ isOpen, onClose }) => {
 
   const handleNext = (e) => { e.preventDefault(); setStep(2); };
   
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    setStep(3); // Show success state immediately
+    setIsSubmitting(true);
     
-    // Construct Mailto link
-    const subject = `New Consultation Request: ${formData.name}`;
-    const body = `Name: ${formData.name}%0D%0AEmail: ${formData.email}%0D%0APhone: ${formData.phone}%0D%0ASpace Type: ${formData.spaceType}%0D%0AApproximate Size: ${formData.size}%0D%0A%0D%0AGoals/Message:%0D%0A${formData.message}%0D%0A%0D%0A--- Sent via TerraSense Web Portal ---`;
-    
-    // Delay routing to mailto so user sees success state
-    setTimeout(() => {
-      window.location.href = `mailto:info@terrasense.in?subject=${encodeURIComponent(subject)}&body=${body}`;
-      setTimeout(onClose, 2000); // Auto close after opening mail client
-    }, 1500);
+    const payload = {
+      access_key: "7e75877f-8124-441e-8e43-4a1e70c69ba5",
+      subject: `New Consultation Request: ${formData.name}`,
+      from_name: formData.name,
+      email: formData.email,
+      phone: formData.phone,
+      space_type: formData.spaceType,
+      size_sq_ft: formData.size,
+      message: formData.message,
+    };
+
+    try {
+      const response = await fetch("https://api.web3forms.com/submit", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (response.ok) {
+        setStep(3);
+        setTimeout(() => {
+          onClose();
+          setStep(1);
+          setFormData({ name: '', email: '', phone: '', spaceType: 'Residential', size: '', message: '' });
+        }, 3000);
+      } else {
+        alert("Something went wrong. Please try again.");
+      }
+    } catch (error) {
+      alert("Network error. Please check your connection.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -288,8 +299,10 @@ const ConsultationModal = ({ isOpen, onClose }) => {
                 <textarea name="message" value={formData.message} onChange={handleChange} rows="3" className="w-full bg-white border border-[#2C4C3B]/10 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#C85A3D]/50 transition-all text-[#2C4C3B] resize-none" placeholder="Looking to reduce stress, improve air quality, or build a sensory garden..."></textarea>
               </div>
               <div className="flex gap-3 mt-4">
-                <Button type="button" variant="outline" onClick={() => setStep(1)} className="px-6">Back</Button>
-                <Button type="submit" variant="primary" className="flex-1">Request Consultation</Button>
+                <Button type="button" variant="outline" onClick={() => setStep(1)} className="px-6" disabled={isSubmitting}>Back</Button>
+                <Button type="submit" variant="primary" className="flex-1" isLoading={isSubmitting}>
+                  {isSubmitting ? 'Sending...' : 'Request Consultation'}
+                </Button>
               </div>
             </form>
           </FadeInSection>
@@ -300,9 +313,9 @@ const ConsultationModal = ({ isOpen, onClose }) => {
             <div className="w-20 h-20 bg-[#C85A3D]/10 rounded-full flex items-center justify-center mx-auto mb-6">
               <CheckCircle size={40} className="text-[#C85A3D]" />
             </div>
-            <h3 className="text-3xl font-['Playfair_Display',serif] text-[#2C4C3B]">Request Prepared!</h3>
+            <h3 className="text-3xl font-['Playfair_Display',serif] text-[#2C4C3B]">Request Sent!</h3>
             <p className="text-[#2C4C3B]/70 max-w-sm mx-auto">
-              Opening your secure email client to securely send your data to our ecological design team. We will be in touch shortly.
+              Your details have been securely transmitted to our team. We will review your space requirements and be in touch shortly.
             </p>
           </FadeInSection>
         )}
@@ -327,7 +340,7 @@ const ChatWidget = () => {
 
   useEffect(() => { scrollToBottom(); }, [chatLog, isTyping, isOpen]);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!message.trim()) return;
 
@@ -336,26 +349,43 @@ const ChatWidget = () => {
     setMessage("");
     setIsTyping(true);
 
-    // Simulate bot thinking/typing
-    setTimeout(() => {
+    try {
+      const response = await fetch("https://api.web3forms.com/submit", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify({
+          access_key: "7e75877f-8124-441e-8e43-4a1e70c69ba5",
+          subject: "New Website Chat Message",
+          message: userMsg,
+        }),
+      });
+
+      setIsTyping(false);
+      
+      if (response.ok) {
+        setChatLog(prev => [...prev, { 
+          sender: 'bot', 
+          text: 'Message sent securely! Our team will review this and reach out shortly.' 
+        }]);
+      } else {
+        throw new Error("API Error");
+      }
+    } catch (error) {
       setIsTyping(false);
       setChatLog(prev => [...prev, { 
         sender: 'bot', 
-        text: 'Thank you for sharing. To connect you with the right ecosystem specialist, I will format this into an email for our team.' 
+        text: 'Sorry, there was a network error sending your message. Please try emailing info@terrasense.in directly.' 
       }]);
-      
-      // Auto route to email after second interaction
-      setTimeout(() => {
-        window.location.href = `mailto:info@terrasense.in?subject=Website Chat Inquiry&body=${encodeURIComponent("User Message: " + userMsg)}`;
-      }, 2000);
-    }, 1500);
+    }
   };
 
   return (
     <div className="fixed bottom-6 right-6 z-[90] flex flex-col items-end">
       {isOpen && (
         <div className="bg-white rounded-2xl shadow-2xl w-80 sm:w-96 mb-4 overflow-hidden border border-[#2C4C3B]/10 animate-in slide-in-from-bottom-5 duration-300 flex flex-col h-[400px]">
-          {/* Header */}
           <div className="bg-[#2C4C3B] p-4 flex justify-between items-center text-white shrink-0">
             <div className="flex items-center gap-3">
               <div className="relative">
@@ -370,7 +400,6 @@ const ChatWidget = () => {
             <button onClick={() => setIsOpen(false)} className="text-white/70 hover:text-white transition-colors p-1"><X size={20}/></button>
           </div>
           
-          {/* Chat Area */}
           <div className="flex-1 p-4 bg-[#FAF7F2] overflow-y-auto flex flex-col gap-3">
             <div className="text-center text-xs text-[#2C4C3B]/40 mb-2">Today, {new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
             
@@ -398,7 +427,6 @@ const ChatWidget = () => {
             <div ref={chatEndRef} />
           </div>
 
-          {/* Input Area */}
           <form onSubmit={handleSubmit} className="p-3 bg-white border-t border-[#2C4C3B]/10 flex gap-2 shrink-0">
             <input 
               type="text" 
@@ -468,7 +496,6 @@ const FAQAccordion = () => {
 const DataDashboard = () => {
   const [activeTab, setActiveTab] = useState('moisture');
   
-  // A simple SVG chart generation
   const maxVal = 100;
   const chartHeight = 150;
   const chartWidth = 600;
@@ -481,9 +508,9 @@ const DataDashboard = () => {
   }).join(' ');
 
   const getThemeColor = () => {
-    if(activeTab === 'moisture') return '#3B82F6'; // Blue
-    if(activeTab === 'light') return '#EAB308'; // Yellow
-    return '#22C55E'; // Green
+    if(activeTab === 'moisture') return '#3B82F6';
+    if(activeTab === 'light') return '#EAB308';
+    return '#22C55E';
   };
 
   return (
@@ -510,20 +537,15 @@ const DataDashboard = () => {
       </div>
 
       <div className="relative h-[200px] w-full overflow-hidden border-b border-l border-[#2C4C3B]/10 pl-2 pb-2">
-        {/* Y Axis Labels */}
         <div className="absolute left-2 top-0 bottom-6 flex flex-col justify-between text-[10px] text-[#2C4C3B]/40 py-2">
           <span>100%</span>
           <span>50%</span>
           <span>0%</span>
         </div>
         
-        {/* SVG Chart */}
         <div className="w-full h-full pl-8 pb-6 relative">
           <svg viewBox={`0 0 ${chartWidth} ${chartHeight}`} className="w-full h-full preserve-3d" preserveAspectRatio="none">
-            {/* Grid lines */}
             <line x1="0" y1={chartHeight/2} x2={chartWidth} y2={chartHeight/2} stroke="#2C4C3B" strokeOpacity="0.05" strokeDasharray="4 4" />
-            
-            {/* Line Graph */}
             <polyline 
               fill="none" 
               stroke={getThemeColor()} 
@@ -534,8 +556,6 @@ const DataDashboard = () => {
               className="animate-[dash_2s_ease-out_forwards]"
               style={{ strokeDasharray: 2000, strokeDashoffset: 0 }}
             />
-            
-            {/* Data Points */}
             {MOCK_SENSOR_DATA.map((data, i) => (
               <circle 
                 key={i}
@@ -552,7 +572,6 @@ const DataDashboard = () => {
             ))}
           </svg>
           
-          {/* X Axis Labels */}
           <div className="absolute bottom-0 left-8 right-0 flex justify-between text-[10px] text-[#2C4C3B]/50 px-1">
             {MOCK_SENSOR_DATA.map((d, i) => <span key={i}>{d.time}</span>)}
           </div>
@@ -590,7 +609,6 @@ export default function App() {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
-    // Inject Fonts & Global Styles
     const style = document.createElement('style');
     style.innerHTML = `
       @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=Inter:wght@300;400;500;600;700&display=swap');
@@ -611,7 +629,6 @@ export default function App() {
   return (
     <div className="min-h-screen bg-[#E8DFD0] text-[#2C4C3B] font-['Inter',sans-serif] selection:bg-[#C85A3D] selection:text-white overflow-x-hidden relative">
       
-      {/* Portals / Fixed Elements */}
       <ConsultationModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
       <ChatWidget />
 
@@ -619,7 +636,6 @@ export default function App() {
       <nav className={`fixed w-full z-[80] transition-all duration-500 ${isScrolled ? 'bg-[#E8DFD0]/95 backdrop-blur-md shadow-sm py-3' : 'bg-transparent py-6'}`}>
         <div className="container mx-auto px-6 md:px-12 flex justify-between items-center">
           
-          {/* CRITICAL ALIGNMENT FIX APPLIED HERE */}
           <div className="flex items-center gap-2 md:gap-3 cursor-pointer group shrink-0 mr-4 md:mr-8 whitespace-nowrap" onClick={() => window.scrollTo(0,0)}>
             <img 
               src={logo} 
@@ -655,7 +671,6 @@ export default function App() {
           </button>
         </div>
         
-        {/* Mobile Menu */}
         <div className={`lg:hidden absolute top-full left-0 w-full bg-[#E8DFD0] shadow-2xl transition-all duration-300 origin-top overflow-hidden ${mobileMenuOpen ? 'max-h-[500px] border-t border-[#2C4C3B]/10' : 'max-h-0'}`}>
           <div className="p-6 flex flex-col gap-4">
             {NAVIGATION_LINKS.map((link) => (
@@ -671,12 +686,11 @@ export default function App() {
 
       {/* --- 2. HERO SECTION --- */}
       <section className="relative h-screen min-h-[700px] max-h-[1000px] flex items-center justify-center overflow-hidden">
-        {/* Subtle Parallax Background Image */}
         <div 
           className="absolute inset-0 z-0 bg-center bg-cover scale-105 animate-[pulse_20s_ease-in-out_infinite_alternate]" 
           style={{ 
             backgroundImage: "url('https://images.unsplash.com/photo-1466692476868-aef1dfb1e735?q=80&w=2070&auto=format&fit=crop')",
-            transform: `translateY(${isScrolled ? '10px' : '0px'})` // simple JS parallax hint
+            transform: `translateY(${isScrolled ? '10px' : '0px'})`
           }}
         >
           <div className="absolute inset-0 bg-[#2C4C3B]/50 mix-blend-multiply z-10" />
@@ -712,7 +726,6 @@ export default function App() {
           </FadeInSection>
         </div>
         
-        {/* Scroll Indicator */}
         <div className="absolute bottom-12 left-1/2 -translate-x-1/2 z-30 flex flex-col items-center animate-bounce opacity-70">
           <span className="text-white text-xs uppercase tracking-widest mb-2 font-medium">Scroll</span>
           <div className="w-5 h-8 border-2 border-white rounded-full flex justify-center p-1">
@@ -725,7 +738,6 @@ export default function App() {
 
       {/* --- 3. BRAND IDENTITY SECTION --- */}
       <section id="our-identity" className="py-24 md:py-32 relative bg-[#E8DFD0] overflow-hidden">
-        {/* Abstract Background Shapes */}
         <div className="absolute top-0 right-0 w-96 h-96 bg-[#2C4C3B]/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3"></div>
         <div className="absolute bottom-0 left-0 w-64 h-64 bg-[#C85A3D]/5 rounded-full blur-3xl translate-y-1/2 -translate-x-1/3"></div>
         
@@ -734,7 +746,6 @@ export default function App() {
             
             <FadeInSection direction="right">
               <div className="relative aspect-square max-w-md mx-auto w-full">
-                {/* Decorative Rings */}
                 <div className="absolute inset-0 bg-[#C85A3D]/10 rounded-full scale-105 animate-[spin_60s_linear_infinite]" />
                 <div className="absolute inset-0 border border-[#2C4C3B]/10 rounded-full scale-110 border-dashed" />
                 
@@ -742,7 +753,6 @@ export default function App() {
                    <img src={logo} alt="TerraSense Identity Logo" className="w-full h-full object-contain drop-shadow-xl transform group-hover:scale-110 group-hover:rotate-3 transition-transform duration-700" />
                 </div>
                 
-                {/* Connecting Line Annotations (Desktop Only) */}
                 <div className="hidden md:block absolute -left-12 top-1/4 w-32 border-t border-[#2C4C3B] border-dashed">
                   <div className="absolute right-0 -top-1.5 w-3 h-3 rounded-full border-2 border-[#2C4C3B] bg-[#C85A3D] animate-pulse"></div>
                   <div className="absolute -top-7 -left-40 w-48 text-sm">
@@ -871,7 +881,6 @@ export default function App() {
         <div className="container mx-auto px-6 md:px-12 max-w-7xl">
           <div className="grid md:grid-cols-3 gap-8 lg:gap-12">
             
-            {/* Pillar 1 */}
             <FadeInSection direction="up" delay="delay-100">
               <div className="bg-[#FAF7F2] rounded-[2.5rem] rounded-tr-[5rem] overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-500 group flex flex-col h-full border border-white">
                 <div className="h-72 overflow-hidden relative">
@@ -893,7 +902,6 @@ export default function App() {
               </div>
             </FadeInSection>
 
-            {/* Pillar 2 */}
             <FadeInSection direction="up" delay="delay-200">
               <div className="bg-[#FAF7F2] rounded-[2.5rem] rounded-tr-[5rem] overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-500 group flex flex-col h-full border border-white mt-0 md:mt-12">
                 <div className="h-72 overflow-hidden relative">
@@ -915,7 +923,6 @@ export default function App() {
               </div>
             </FadeInSection>
 
-            {/* Pillar 3 */}
             <FadeInSection direction="up" delay="delay-300">
               <div className="bg-[#FAF7F2] rounded-[2.5rem] rounded-tr-[5rem] overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-500 group flex flex-col h-full border border-white mt-0 md:mt-24">
                 <div className="h-72 overflow-hidden relative">
@@ -1013,7 +1020,6 @@ export default function App() {
 
       {/* --- 8. TESTIMONIALS --- */}
       <section className="py-24 md:py-32 bg-[#E8DFD0] relative overflow-hidden">
-        {/* Large faint background logo */}
         <div className="absolute -right-40 top-1/2 -translate-y-1/2 opacity-5 pointer-events-none w-[800px] h-[800px]">
           <img src={logo} alt="Background" className="w-full h-full object-contain" />
         </div>
@@ -1066,7 +1072,7 @@ export default function App() {
             <FAQAccordion />
           </FadeInSection>
           <div className="text-center mt-12 text-[#2C4C3B]/70">
-            <p>Still have questions? <span onClick={() => setIsChatOpen(true)} className="text-[#C85A3D] font-bold cursor-pointer hover:underline">Chat with us</span></p>
+            <p>Still have questions? <span onClick={() => setIsModalOpen(true)} className="text-[#C85A3D] font-bold cursor-pointer hover:underline">Book a Call</span></p>
           </div>
         </div>
       </section>
@@ -1105,7 +1111,6 @@ export default function App() {
 
       {/* --- 11. CTA / FOOTER --- */}
       <footer className="bg-[#2C4C3B] text-[#E8DFD0] relative pt-32 pb-12 overflow-hidden">
-        {/* Background glow in footer */}
         <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-full h-1/2 bg-[#C85A3D]/10 blur-[100px] pointer-events-none"></div>
 
         <div className="container mx-auto px-6 md:px-12 relative z-10">
@@ -1156,7 +1161,6 @@ export default function App() {
                 Restoring the exact sensory connection lost to modern technology.
               </p>
               <div className="flex gap-4">
-                {/* Social Placeholders */}
                 <a href="#" className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center hover:bg-[#C85A3D] hover:text-white transition-all text-white/60">IN</a>
                 <a href="#" className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center hover:bg-[#C85A3D] hover:text-white transition-all text-white/60">TW</a>
                 <a href="#" className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center hover:bg-[#C85A3D] hover:text-white transition-all text-white/60">IG</a>
