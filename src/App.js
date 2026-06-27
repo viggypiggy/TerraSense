@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Leaf, Cpu, ArrowRight, ArrowUpRight, Droplet, Sun, Wind, ChevronRight, Menu, X } from 'lucide-react';
+import { Leaf, Cpu, ArrowRight, ArrowUpRight, Droplet, Sun, Wind, ChevronRight, Menu, X, MessageCircle, Send } from 'lucide-react';
 
-// --- IMPORT YOUR UPLOADED SVG LOGO HERE ---
+// --- IMPORT YOUR LOGO HERE ---
 import logo from './logo.svg';
 
 // --- CUSTOM HOOKS ---
@@ -73,36 +73,135 @@ const Button = ({ children, variant = 'primary', className = '', ...props }) => 
 export default function App() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  
+  // New States for Modals and Chat
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [chatMessage, setChatMessage] = useState("");
 
   useEffect(() => {
-    // Inject Google Font for that "Editorial Serif" look
-    const link = document.createElement('link');
-    link.href = 'https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=Inter:wght@300;400;500;600;700&display=swap';
-    link.rel = 'stylesheet';
-    document.head.appendChild(link);
+    // Inject Google Font & Smooth Scrolling
+    const style = document.createElement('style');
+    style.innerHTML = `
+      @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=Inter:wght@300;400;500;600;700&display=swap');
+      html { scroll-behavior: smooth; }
+    `;
+    document.head.appendChild(style);
 
     const handleScroll = () => setIsScrolled(window.scrollY > 50);
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const navLinks = ["Our Identity", "Solutions", "Approach", "Projects"];
+  const navLinks = ["Our Identity", "Solutions", "Approach"];
+
+  // Form Handlers
+  const handleConsultationSubmit = (e) => {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    const name = formData.get('name');
+    const email = formData.get('email');
+    const space = formData.get('space');
+    const body = `Name: ${name}%0D%0AEmail: ${email}%0D%0ASpace Type: ${space}%0D%0A%0D%0AHello TerraSense team, I would like to request a consultation for my space.`;
+    
+    window.location.href = `mailto:info@terrasense.in?subject=New Consultation Request from ${name}&body=${body}`;
+    setIsModalOpen(false);
+  };
+
+  const handleChatSubmit = (e) => {
+    e.preventDefault();
+    if(!chatMessage.trim()) return;
+    window.location.href = `mailto:info@terrasense.in?subject=Website Chat Inquiry&body=${encodeURIComponent(chatMessage)}`;
+    setChatMessage("");
+    setIsChatOpen(false);
+  };
 
   return (
     <div className="min-h-screen bg-[#E8DFD0] text-[#2C4C3B] font-['Inter',sans-serif] selection:bg-[#C85A3D] selection:text-white overflow-x-hidden">
       
+      {/* --- CONSULTATION MODAL --- */}
+      {isModalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[#2C4C3B]/60 backdrop-blur-sm transition-opacity">
+          <div className="bg-[#FAF7F2] rounded-3xl p-8 md:p-12 max-w-lg w-full shadow-2xl relative animate-in fade-in zoom-in duration-300">
+            <button onClick={() => setIsModalOpen(false)} className="absolute top-6 right-6 text-[#2C4C3B]/50 hover:text-[#C85A3D] transition-colors">
+              <X size={24} />
+            </button>
+            <h3 className="text-3xl font-['Playfair_Display',serif] text-[#2C4C3B] mb-2">Let's grow together.</h3>
+            <p className="text-[#2C4C3B]/70 mb-8 text-sm">Fill out the details below and our ecological design team will reach out shortly.</p>
+            
+            <form onSubmit={handleConsultationSubmit} className="space-y-5">
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-[#2C4C3B]/70 mb-2">Your Name</label>
+                <input required name="name" type="text" className="w-full bg-white border border-[#2C4C3B]/10 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#C85A3D]/50 transition-all" placeholder="Jane Doe" />
+              </div>
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-[#2C4C3B]/70 mb-2">Email Address</label>
+                <input required name="email" type="email" className="w-full bg-white border border-[#2C4C3B]/10 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#C85A3D]/50 transition-all" placeholder="jane@example.com" />
+              </div>
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-[#2C4C3B]/70 mb-2">Space Type</label>
+                <select name="space" className="w-full bg-white border border-[#2C4C3B]/10 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#C85A3D]/50 transition-all text-[#2C4C3B]">
+                  <option>Residential Garden</option>
+                  <option>Corporate Office / Indoor</option>
+                  <option>Public / Community Space</option>
+                  <option>Other</option>
+                </select>
+              </div>
+              <Button type="submit" variant="primary" className="w-full mt-4">Submit Request</Button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* --- FLOATING CHAT WIDGET --- */}
+      <div className="fixed bottom-6 right-6 z-[90] flex flex-col items-end">
+        {isChatOpen && (
+          <div className="bg-white rounded-2xl shadow-2xl w-72 mb-4 overflow-hidden border border-[#2C4C3B]/10 animate-in slide-in-from-bottom-5 duration-300">
+            <div className="bg-[#2C4C3B] p-4 flex justify-between items-center text-white">
+              <div className="flex items-center gap-2">
+                <img src={logo} alt="Icon" className="w-6 h-6 brightness-0 invert" />
+                <span className="font-medium text-sm">TerraSense Support</span>
+              </div>
+              <button onClick={() => setIsChatOpen(false)} className="text-white/70 hover:text-white"><X size={18}/></button>
+            </div>
+            <div className="p-4 bg-[#FAF7F2] h-32 overflow-y-auto">
+              <div className="bg-[#2C4C3B]/10 text-[#2C4C3B] p-3 rounded-lg rounded-tl-none text-sm w-[90%]">
+                Hello! How can we help you reconnect with your space today?
+              </div>
+            </div>
+            <form onSubmit={handleChatSubmit} className="p-3 bg-white border-t border-[#2C4C3B]/10 flex gap-2">
+              <input 
+                type="text" 
+                value={chatMessage}
+                onChange={(e) => setChatMessage(e.target.value)}
+                placeholder="Type a message..." 
+                className="flex-grow bg-[#FAF7F2] border-none rounded-full px-4 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#C85A3D]"
+              />
+              <button type="submit" className="bg-[#C85A3D] text-white p-2 rounded-full hover:bg-[#a64a32] transition-colors">
+                <Send size={16} />
+              </button>
+            </form>
+          </div>
+        )}
+        <button 
+          onClick={() => setIsChatOpen(!isChatOpen)}
+          className="bg-[#C85A3D] text-white p-4 rounded-full shadow-xl hover:shadow-2xl hover:scale-105 transition-all duration-300"
+        >
+          {isChatOpen ? <X size={24} /> : <MessageCircle size={24} />}
+        </button>
+      </div>
+
       {/* --- NAVIGATION --- */}
       <nav className={`fixed w-full z-50 transition-all duration-500 ${isScrolled ? 'bg-[#E8DFD0]/95 backdrop-blur-md shadow-sm py-4' : 'bg-transparent py-6'}`}>
         <div className="container mx-auto px-6 md:px-12 flex justify-between items-center">
           
-          <div className="flex items-center gap-3 cursor-pointer group">
-            {/* 1. NAVIGATION LOGO */}
+          <div className="flex items-center gap-2 md:gap-3 cursor-pointer group shrink-0 mr-4 md:mr-8" onClick={() => window.scrollTo(0,0)}>
             <img 
               src={logo} 
               alt="TerraSense Logo" 
-              className="w-10 h-10 object-contain transform group-hover:scale-105 transition-transform duration-300" 
+              className="w-10 h-10 md:w-11 md:h-11 object-contain transform group-hover:scale-105 transition-transform duration-300" 
             />
-            <span className="text-[1.65rem] font-bold tracking-tight mt-1 hidden sm:block">
+            <span className="text-xl md:text-[1.65rem] font-bold tracking-tight mt-1 whitespace-nowrap">
               <span className="text-[#C85A3D]">Terra</span><span className="text-[#2C4C3B]">Sense</span>
             </span>
           </div>
@@ -113,7 +212,7 @@ export default function App() {
                 {link}
               </a>
             ))}
-            <Button variant="primary" className="!py-2.5 !px-6 text-sm">Free consultation</Button>
+            <Button onClick={() => setIsModalOpen(true)} variant="primary" className="!py-2.5 !px-6 text-sm">Free consultation</Button>
           </div>
 
           <button className="md:hidden text-[#2C4C3B]" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
@@ -125,26 +224,21 @@ export default function App() {
         {mobileMenuOpen && (
           <div className="absolute top-full left-0 w-full bg-[#E8DFD0] border-t border-[#2C4C3B]/10 shadow-lg p-6 flex flex-col gap-4 md:hidden">
             {navLinks.map((link) => (
-              <a key={link} href={`#${link.toLowerCase().replace(' ', '-')}`} className="text-lg font-medium border-b border-[#2C4C3B]/10 pb-2">
+              <a key={link} onClick={() => setMobileMenuOpen(false)} href={`#${link.toLowerCase().replace(' ', '-')}`} className="text-lg font-medium border-b border-[#2C4C3B]/10 pb-2">
                 {link}
               </a>
             ))}
-            <Button variant="primary" className="mt-4 w-full">Free consultation</Button>
+            <Button onClick={() => { setIsModalOpen(true); setMobileMenuOpen(false); }} variant="primary" className="mt-4 w-full">Free consultation</Button>
           </div>
         )}
       </nav>
 
       {/* --- HERO SECTION --- */}
       <section className="relative h-screen min-h-[700px] flex items-center justify-center overflow-hidden">
-        {/* Background Image Setup */}
-        <div className="absolute inset-0 z-0">
+        {/* Parallax Background Image */}
+        <div className="absolute inset-0 z-0 bg-fixed bg-center bg-cover" style={{ backgroundImage: "url('https://images.unsplash.com/photo-1466692476868-aef1dfb1e735?q=80&w=2070&auto=format&fit=crop')" }}>
           <div className="absolute inset-0 bg-[#2C4C3B]/40 mix-blend-multiply z-10" />
           <div className="absolute inset-0 bg-gradient-to-b from-transparent to-[#2C4C3B]/80 z-10" />
-          <img 
-            src="https://images.unsplash.com/photo-1466692476868-aef1dfb1e735?q=80&w=2070&auto=format&fit=crop" 
-            alt="Botanical aesthetic with dark green leaves" 
-            className="w-full h-full object-cover object-center"
-          />
         </div>
 
         <div className="relative z-20 text-center px-6 max-w-4xl mx-auto mt-20">
@@ -159,12 +253,12 @@ export default function App() {
               We translate what plants sense into designs that reconnect people with their ecosystems. An invisible touch, rooted in data, grown with care.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <Button variant="primary" className="w-full sm:w-auto shadow-[0_0_40px_rgba(200,90,61,0.4)]">
+              <Button onClick={() => setIsModalOpen(true)} variant="primary" className="w-full sm:w-auto shadow-[0_0_40px_rgba(200,90,61,0.4)]">
                 Free consultation <ArrowRight className="ml-2 w-5 h-5" />
               </Button>
-              <Button variant="secondary" className="w-full sm:w-auto bg-[#E8DFD0]/20 backdrop-blur-md border border-[#E8DFD0]/30 hover:bg-[#E8DFD0]/30">
+              <a href="#solutions" className="w-full sm:w-auto inline-flex items-center justify-center px-8 py-4 rounded-full font-medium transition-all duration-300 ease-in-out hover:-translate-y-1 bg-[#E8DFD0]/20 text-[#E8DFD0] backdrop-blur-md border border-[#E8DFD0]/30 hover:bg-[#E8DFD0]/30 shadow-lg hover:shadow-xl">
                 Our solutions
-              </Button>
+              </a>
             </div>
           </FadeInSection>
         </div>
@@ -179,17 +273,9 @@ export default function App() {
               <div className="relative aspect-square max-w-md mx-auto">
                 <div className="absolute inset-0 bg-[#C85A3D]/5 rounded-full scale-110" />
                 <div className="relative z-10 w-full h-full flex items-center justify-center border border-[#2C4C3B]/10 rounded-full bg-white/40 shadow-xl backdrop-blur-sm p-16 group">
-                   
-                   {/* 2. IDENTITY SECTION LOGO */}
-                   <img 
-                    src={logo} 
-                    alt="TerraSense Identity Logo" 
-                    className="w-full h-full object-contain drop-shadow-lg transform group-hover:scale-105 transition-transform duration-700" 
-                   />
-
+                   <img src={logo} alt="TerraSense Identity Logo" className="w-full h-full object-contain drop-shadow-lg transform group-hover:scale-105 transition-transform duration-700" />
                 </div>
                 
-                {/* Connecting Line Annotations (Desktop Only) */}
                 <div className="hidden md:block absolute -left-20 top-1/4 w-32 border-t border-[#2C4C3B] border-dashed">
                   <div className="absolute -top-6 -left-32 w-48 text-sm">
                     <strong className="text-[#C85A3D] block">The Human Element</strong>
@@ -230,7 +316,7 @@ export default function App() {
                   <p className="font-medium text-[#C85A3D]">Field-first,<br/>data-driven</p>
                 </div>
               </div>
-              <Button variant="primary" className="mt-10">Our story <ArrowUpRight className="ml-2 w-4 h-4" /></Button>
+              <Button onClick={() => setIsModalOpen(true)} variant="primary" className="mt-10">Our story <ArrowUpRight className="ml-2 w-4 h-4" /></Button>
             </FadeInSection>
           </div>
         </div>
@@ -249,7 +335,6 @@ export default function App() {
           </div>
 
           <div className="grid md:grid-cols-2 gap-12 max-w-5xl mx-auto">
-            {/* The Problem */}
             <FadeInSection delay="delay-100">
               <div className="bg-white p-10 rounded-2xl shadow-sm border border-[#2C4C3B]/5 h-full relative overflow-hidden group">
                 <div className="absolute top-0 right-0 w-32 h-32 bg-[#2C4C3B]/5 rounded-bl-full -mr-16 -mt-16 transition-transform group-hover:scale-110"></div>
@@ -266,7 +351,6 @@ export default function App() {
               </div>
             </FadeInSection>
 
-            {/* The Solution */}
             <FadeInSection delay="delay-200">
               <div className="bg-[#2C4C3B] text-[#E8DFD0] p-10 rounded-2xl shadow-xl h-full relative overflow-hidden group">
                 <div className="absolute bottom-0 right-0 w-40 h-40 bg-[#C85A3D]/20 rounded-tl-full -mr-10 -mb-10 transition-transform group-hover:scale-110"></div>
@@ -300,16 +384,11 @@ export default function App() {
 
         <div className="container mx-auto px-6 md:px-12 max-w-6xl">
           <div className="grid md:grid-cols-3 gap-8">
-            {/* Pillar 1 */}
             <FadeInSection delay="delay-100">
               <div className="bg-[#FAF7F2] rounded-[40px] rounded-t-[100px] overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-500 group flex flex-col h-full border border-white">
                 <div className="h-64 overflow-hidden relative">
                   <div className="absolute inset-0 bg-black/10 z-10 group-hover:bg-transparent transition-colors"></div>
-                  <img 
-                    src="https://images.unsplash.com/photo-1585320806297-9794b3e4ce88?q=80&w=1932&auto=format&fit=crop" 
-                    alt="Garden setup" 
-                    className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700"
-                  />
+                  <img src="https://images.unsplash.com/photo-1585320806297-9794b3e4ce88?q=80&w=1932&auto=format&fit=crop" alt="Garden setup" className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700" />
                   <div className="absolute bottom-0 left-0 w-full z-20 translate-y-1">
                     <svg viewBox="0 0 1200 120" preserveAspectRatio="none" className="w-full h-12 fill-[#FAF7F2]">
                       <path d="M321.39,56.44c58-10.79,114.16-30.13,172-41.86,82.39-16.72,168.19-17.73,250.45-.39C823.78,31,906.67,72,985.66,92.83c70.05,18.48,146.53,26.09,214.34,3V120H0V95.8C59.71,118,130.83,119.5,193.33,109.1,238.16,101.65,283.47,73.5,321.39,56.44Z"></path>
@@ -322,23 +401,18 @@ export default function App() {
                   <p className="text-[#2C4C3B]/70 leading-relaxed mb-8 flex-grow">
                     Field-curated sensory readings from living gardens — soil samples, microbiome cultures, and ecological baselines that tell the story of a place.
                   </p>
-                  <a href="#" className="text-[#C85A3D] font-semibold flex items-center group-hover:text-[#2C4C3B] transition-colors mt-auto">
-                    Learn more <ChevronRight size={18} className="ml-1" />
-                  </a>
+                  <span onClick={() => setIsModalOpen(true)} className="text-[#C85A3D] font-semibold flex items-center group-hover:text-[#2C4C3B] transition-colors mt-auto cursor-pointer">
+                    Request plan <ChevronRight size={18} className="ml-1" />
+                  </span>
                 </div>
               </div>
             </FadeInSection>
 
-            {/* Pillar 2 */}
             <FadeInSection delay="delay-200">
               <div className="bg-[#FAF7F2] rounded-[40px] rounded-t-[100px] overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-500 group flex flex-col h-full border border-white mt-0 md:mt-12">
                 <div className="h-64 overflow-hidden relative">
                   <div className="absolute inset-0 bg-black/10 z-10 group-hover:bg-transparent transition-colors"></div>
-                  <img 
-                    src="https://images.unsplash.com/photo-1600585154340-be6161a56a0c?q=80&w=2070&auto=format&fit=crop" 
-                    alt="Biophilic design space" 
-                    className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700"
-                  />
+                  <img src="https://images.unsplash.com/photo-1600585154340-be6161a56a0c?q=80&w=2070&auto=format&fit=crop" alt="Biophilic design space" className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700" />
                   <div className="absolute bottom-0 left-0 w-full z-20 translate-y-1">
                     <svg viewBox="0 0 1200 120" preserveAspectRatio="none" className="w-full h-12 fill-[#FAF7F2]">
                       <path d="M321.39,56.44c58-10.79,114.16-30.13,172-41.86,82.39-16.72,168.19-17.73,250.45-.39C823.78,31,906.67,72,985.66,92.83c70.05,18.48,146.53,26.09,214.34,3V120H0V95.8C59.71,118,130.83,119.5,193.33,109.1,238.16,101.65,283.47,73.5,321.39,56.44Z"></path>
@@ -351,23 +425,18 @@ export default function App() {
                   <p className="text-[#2C4C3B]/70 leading-relaxed mb-8 flex-grow">
                     Integrating nature and design to actively improve sensory well-being — reconnecting spaces with ecological rhythms and living systems.
                   </p>
-                  <a href="#" className="text-[#2C4C3B] font-semibold flex items-center group-hover:text-[#C85A3D] transition-colors mt-auto">
-                    Learn more <ChevronRight size={18} className="ml-1" />
-                  </a>
+                  <span onClick={() => setIsModalOpen(true)} className="text-[#2C4C3B] font-semibold flex items-center group-hover:text-[#C85A3D] transition-colors mt-auto cursor-pointer">
+                    Consult our designers <ChevronRight size={18} className="ml-1" />
+                  </span>
                 </div>
               </div>
             </FadeInSection>
 
-            {/* Pillar 3 */}
             <FadeInSection delay="delay-300">
               <div className="bg-[#FAF7F2] rounded-[40px] rounded-t-[100px] overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-500 group flex flex-col h-full border border-white mt-0 md:mt-24">
                 <div className="h-64 overflow-hidden relative">
                   <div className="absolute inset-0 bg-black/10 z-10 group-hover:bg-transparent transition-colors"></div>
-                  <img 
-                    src="https://images.unsplash.com/photo-1518531933037-91b2f5f229cc?q=80&w=1854&auto=format&fit=crop" 
-                    alt="Botanical intelligence" 
-                    className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700"
-                  />
+                  <img src="https://images.unsplash.com/photo-1518531933037-91b2f5f229cc?q=80&w=1854&auto=format&fit=crop" alt="Botanical intelligence" className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700" />
                   <div className="absolute bottom-0 left-0 w-full z-20 translate-y-1">
                     <svg viewBox="0 0 1200 120" preserveAspectRatio="none" className="w-full h-12 fill-[#FAF7F2]">
                       <path d="M321.39,56.44c58-10.79,114.16-30.13,172-41.86,82.39-16.72,168.19-17.73,250.45-.39C823.78,31,906.67,72,985.66,92.83c70.05,18.48,146.53,26.09,214.34,3V120H0V95.8C59.71,118,130.83,119.5,193.33,109.1,238.16,101.65,283.47,73.5,321.39,56.44Z"></path>
@@ -380,9 +449,9 @@ export default function App() {
                   <p className="text-[#2C4C3B]/70 leading-relaxed mb-8 flex-grow">
                     Data-driven insights from living ecosystems — translating complex plant signals into actionable ecological knowledge for design and planning.
                   </p>
-                  <a href="#" className="text-[#a3702a] font-semibold flex items-center group-hover:text-[#2C4C3B] transition-colors mt-auto">
-                    Learn more <ChevronRight size={18} className="ml-1" />
-                  </a>
+                  <span onClick={() => setIsModalOpen(true)} className="text-[#a3702a] font-semibold flex items-center group-hover:text-[#2C4C3B] transition-colors mt-auto cursor-pointer">
+                    View data models <ChevronRight size={18} className="ml-1" />
+                  </span>
                 </div>
               </div>
             </FadeInSection>
@@ -442,7 +511,7 @@ export default function App() {
               <div className="bg-[#E8DFD0] rounded-[40px] p-8 md:p-12 inline-block text-left text-[#2C4C3B] shadow-2xl transform hover:-translate-y-2 transition-transform duration-500">
                  <h3 className="text-2xl font-['Playfair_Display',serif] mb-2">Start a conversation</h3>
                  <p className="text-[#2C4C3B]/70 mb-8 text-sm">No commitment. Just a dialogue about your space.</p>
-                 <Button variant="primary" className="w-full justify-between group">
+                 <Button onClick={() => setIsModalOpen(true)} variant="primary" className="w-full justify-between group">
                    Get a free consultation 
                    <span className="bg-white/20 p-2 rounded-full group-hover:bg-white/30 transition-colors">
                     <ArrowRight className="w-4 h-4" />
@@ -455,15 +524,11 @@ export default function App() {
           <div className="grid md:grid-cols-4 gap-12 py-12 border-t border-[#E8DFD0]/10">
             <div className="md:col-span-2">
               <div className="flex items-center gap-3 mb-6">
-                
-                {/* 3. FOOTER LOGO */}
-                {/* Notice the `brightness-0 invert` classes here - they turn your SVG white automatically so it looks good on the dark green background! */}
                 <img 
                   src={logo} 
                   alt="TerraSense Footer Logo" 
                   className="w-10 h-10 object-contain brightness-0 invert opacity-90" 
                 />
-                
                 <span className="text-2xl font-bold tracking-tight text-white">
                   TerraSense
                 </span>
@@ -477,17 +542,17 @@ export default function App() {
             <div>
               <h5 className="font-bold tracking-wider text-xs uppercase mb-6 text-white">Explore</h5>
               <ul className="space-y-4 text-sm text-[#E8DFD0]/70">
-                <li><a href="#" className="hover:text-[#C85A3D] transition-colors">Solutions</a></li>
+                <li><a href="#solutions" className="hover:text-[#C85A3D] transition-colors">Solutions</a></li>
                 <li><a href="#" className="hover:text-[#C85A3D] transition-colors">Gallery</a></li>
-                <li><a href="#" className="hover:text-[#C85A3D] transition-colors">About</a></li>
+                <li><a href="#our-identity" className="hover:text-[#C85A3D] transition-colors">About</a></li>
               </ul>
             </div>
             
             <div>
               <h5 className="font-bold tracking-wider text-xs uppercase mb-6 text-white">Connect</h5>
               <ul className="space-y-4 text-sm text-[#E8DFD0]/70">
-                <li><a href="#" className="hover:text-[#C85A3D] transition-colors">Contact us</a></li>
-                <li><a href="#" className="hover:text-[#C85A3D] transition-colors">Free consultation</a></li>
+                <li><span onClick={() => setIsChatOpen(true)} className="hover:text-[#C85A3D] transition-colors cursor-pointer">Contact us</span></li>
+                <li><span onClick={() => setIsModalOpen(true)} className="hover:text-[#C85A3D] transition-colors cursor-pointer">Free consultation</span></li>
                 <li><a href="#" className="hover:text-[#C85A3D] transition-colors">Data Curation Log</a></li>
               </ul>
             </div>
