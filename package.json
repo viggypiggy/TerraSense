@@ -2,7 +2,7 @@
   "name": "terrasense",
   "version": "0.1.0",
   "private": true,
-  "homepage": "https://www.terrasense.in",
+  "homepage": ".",
   "dependencies": {
     "@tailwindcss/postcss": "^4.3.0",
     "@testing-library/jest-dom": "^6.9.1",
