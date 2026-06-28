@@ -19,7 +19,7 @@ const TerraAI = () => {
         method: "POST",
         headers: { "Content-Type": "application/json", Accept: "application/json" },
         body: JSON.stringify({
-          access_key: process.env.WEB3FORMS_ACCESS_KEY,
+          access_key: process.env.REACT_APP_W3FORMS_KEY,
           to_email: "vignesh@terrasense.in", // Direct Zoho routing
           subject: `🌿 Lead Alert: ${meta.name} interested in TerraSense`,
           message: `
