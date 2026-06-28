@@ -2,31 +2,7 @@ import React, { useRef } from 'react';
 import ChatBot from 'react-chatbotify';
 
 const TerraAI = () => {
-  // useRef ensures the memory stays intact without causing React to crash/re-render
   const conversationLog = useRef([]);
-  const emailSent = useRef(false);
-
-  // Background function to email you the lead and insights
-  const sendInsightsToEmail = async (log) => {
-    if (emailSent.current) return;
-    emailSent.current = true;
-
-    const formattedLog = log.map(entry => `${entry.role}: ${entry.text}`).join('\n');
-    
-    try {
-      fetch("https://api.w3forms.com/submit", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Accept: "application/json" },
-        body: JSON.stringify({
-          access_key: process.env.REACT_APP_W3FORMS_KEY,
-          subject: "🌿 New TerraSense Lead & Conversation Log",
-          message: `--- Full Chat History ---\n${formattedLog}`,
-        }),
-      });
-    } catch (error) {
-      console.error("W3Forms Delivery Failed:", error);
-    }
-  };
 
   const flow = {
     start: {
@@ -39,60 +15,60 @@ const TerraAI = () => {
         conversationLog.current.push({ role: "User", text: userText });
 
         try {
-          // Calls your secure Vercel backend instead of exposing keys to the browser
+          // Attempt to talk to the secure backend
           const response = await fetch('/api/chat', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ history: conversationLog.current })
           });
           
-          if (!response.ok) throw new Error('API connection failed');
+          const text = await response.text(); 
           
-          const data = await response.json();
-          const botReply = data.reply;
-          
-          conversationLog.current.push({ role: "Terra AI", text: botReply });
-          
-          // Silently trigger the W3Forms email after the user sends 3 messages
-          const userMessagesOnly = conversationLog.current.filter(msg => msg.role === "User");
-          if (userMessagesOnly.length === 3) {
-            sendInsightsToEmail(conversationLog.current);
+          // Diagnostic 1: If Vercel routes the API to your HTML file by mistake
+          if (text.startsWith('<!DOCTYPE html>')) {
+             return `Routing Error: Vercel is blocking the /api route. We need to update vercel.json.`;
+          }
+
+          // Diagnostic 2: Standard Server Errors (e.g. 500 Internal Server Error)
+          if (!response.ok) {
+             return `Server Error ${response.status}: Please ensure your Gemini API Key is saved in Vercel Settings.`;
           }
           
+          const data = JSON.parse(text);
+          
+          // Diagnostic 3: Gemini specifically rejected the request
+          if (data.error) {
+             return `API Error: ${data.error}`;
+          }
+
+          const botReply = data.reply;
+          conversationLog.current.push({ role: "Terra AI", text: botReply });
           return botReply;
+
         } catch (error) {
-          console.error(error);
-          return "I'm experiencing a slight connection delay. Could you send that once more?";
+          return `Network Crash: ${error.message}`;
         }
       },
       path: "process_chat"
     }
   };
 
-  // V2 specific styling to enforce your branding and strip defaults
-  const settings = {
-    general: {
+  // V1 Styling completely forced
+  const options = {
+    theme: {
       primaryColor: "#d97757", 
       secondaryColor: "#334138",
-      fontFamily: "inherit",
     },
     header: {
-      title: "Terra AI",
+      title: "Terra AI (Live)", // If you don't see this text, your browser is using a cached page!
       showAvatar: false,
     },
     botBubble: {
       showAvatar: false,
-    },
-    chatHistory: {
-      storageKey: "terra_ai_memory",
-      viewChatHistoryButtonText: "Load Previous Conversation",
-    },
-    footer: {
-      text: "Terra AI - Biophilic Consultant", 
     }
   };
 
-  return <ChatBot flow={flow} settings={settings} />;
+  return <ChatBot flow={flow} options={options} />;
 };
 
 export default TerraAI;
