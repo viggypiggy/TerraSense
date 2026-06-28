@@ -1,5 +1,7 @@
 import React, { useRef } from 'react';
 import ChatBot from 'react-chatbotify';
+// This assumes TerraAI.js is in your components folder and logo.svg is in the src folder.
+import logo from '../logo.svg'; 
 
 const TerraAI = () => {
   const conversationLog = useRef([]);
@@ -15,30 +17,17 @@ const TerraAI = () => {
         conversationLog.current.push({ role: "User", text: userText });
 
         try {
-          // Attempt to talk to the secure backend
           const response = await fetch('/api/chat', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ history: conversationLog.current })
           });
           
-          const text = await response.text(); 
+          const data = await response.json();
           
-          // Diagnostic 1: If Vercel routes the API to your HTML file by mistake
-          if (text.startsWith('<!DOCTYPE html>')) {
-             return `Routing Error: Vercel is blocking the /api route. We need to update vercel.json.`;
-          }
-
-          // Diagnostic 2: Standard Server Errors (e.g. 500 Internal Server Error)
+          // Now it will print the EXACT error from the backend instead of a generic 500
           if (!response.ok) {
-             return `Server Error ${response.status}: Please ensure your Gemini API Key is saved in Vercel Settings.`;
-          }
-          
-          const data = JSON.parse(text);
-          
-          // Diagnostic 3: Gemini specifically rejected the request
-          if (data.error) {
-             return `API Error: ${data.error}`;
+             return `API Error: ${data.error || 'Unknown Server Crash'}`;
           }
 
           const botReply = data.reply;
@@ -53,18 +42,20 @@ const TerraAI = () => {
     }
   };
 
-  // V1 Styling completely forced
   const options = {
     theme: {
       primaryColor: "#d97757", 
       secondaryColor: "#334138",
+      showFooter: false, // 🚀 COMPLETELY removes the "Powered by React Chatbotify" branding
     },
     header: {
-      title: "Terra AI (Live)", // If you don't see this text, your browser is using a cached page!
-      showAvatar: false,
+      title: "Terra AI", 
+      showAvatar: true,
+      avatar: logo, // 🚀 Uses your TerraSense logo
     },
     botBubble: {
-      showAvatar: false,
+      showAvatar: true,
+      avatar: logo, // 🚀 Uses your TerraSense logo for bot messages
     }
   };
 
