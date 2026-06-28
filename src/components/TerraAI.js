@@ -4,8 +4,10 @@ import logo from '../logo.svg';
 
 const TerraAI = () => {
   const conversationLog = useRef([]);
-  // 1. ADD THIS: A flag to track if we've already notified you
+  // Track status to prevent duplicate loops
   const hasSentEmail = useRef(false);
+  const lastSentPhone = useRef(null);
+  const lastSentInsights = useRef(null); // Track the project details
 
   const flow = {
     start: {
@@ -30,27 +32,43 @@ const TerraAI = () => {
           const botReply = data.reply;
           conversationLog.current.push({ role: "Terra AI", text: botReply });
 
-          // 2. MODIFIED: Only send if we found a lead AND we haven't sent an email yet
-          if (data.leadData && !hasSentEmail.current) {
-            
-            // Flip the switch so it doesn't send again
-            hasSentEmail.current = true;
+          // Check if we have valid lead data to evaluate
+          if (data.leadData) {
+            const currentPhone = data.leadData.phone;
+            const currentInsights = data.leadData.insights;
 
-            const transcript = conversationLog.current
-              .map(entry => `${entry.role}: ${entry.text}`)
-              .join('\n');
+            // Logic: Is this a brand new lead, or an update to an existing one?
+            const isNewLead = !hasSentEmail.current && currentPhone !== "Not Provided";
+            const isUpdatedLead = hasSentEmail.current && (
+                (currentPhone !== lastSentPhone.current && currentPhone !== "Not Provided") || 
+                (currentInsights !== lastSentInsights.current)
+            );
 
-            await fetch("https://api.web3forms.com/submit", {
-              method: "POST",
-              headers: { "Content-Type": "application/json", "Accept": "application/json" },
-              body: JSON.stringify({
-                access_key: "94d28d63-f284-4a3b-85f0-1644327ed03a",
-                name: data.leadData.name,
-                phone: data.leadData.phone,
-                subject: `🌿 Lead Alert: ${data.leadData.name}`,
-                message: `👤 Name: ${data.leadData.name}\n📞 Phone: ${data.leadData.phone}\n🧠 Insights: ${data.leadData.insights}\n\n💬 Full Conversation:\n${transcript}`
-              }),
-            });
+            if (isNewLead || isUpdatedLead) {
+              hasSentEmail.current = true;
+              lastSentPhone.current = currentPhone;
+              lastSentInsights.current = currentInsights;
+
+              const transcript = conversationLog.current
+                .map(entry => `${entry.role}: ${entry.text}`)
+                .join('\n');
+
+              const subjectLine = isUpdatedLead 
+                ? `🌿 UPDATE: Lead Alert for ${data.leadData.name}` 
+                : `🌿 New Lead Alert: ${data.leadData.name}`;
+
+              await fetch("https://api.web3forms.com/submit", {
+                method: "POST",
+                headers: { "Content-Type": "application/json", "Accept": "application/json" },
+                body: JSON.stringify({
+                  access_key: "94d28d63-f284-4a3b-85f0-1644327ed03a",
+                  name: data.leadData.name,
+                  phone: currentPhone,
+                  subject: subjectLine,
+                  message: `👤 Name: ${data.leadData.name}\n📞 Phone: ${currentPhone}\n🧠 Insights: ${currentInsights}\n\n💬 Full Conversation:\n${transcript}`
+                }),
+              });
+            }
           }
 
           return botReply;
@@ -63,28 +81,13 @@ const TerraAI = () => {
     }
   };
 
+  // ... (options object remains the same)
   const options = {
-    theme: {
-      primaryColor: "#d97757", 
-      secondaryColor: "#334138",
-      showFooter: false, 
-    },
-    header: {
-      title: "Terra AI", 
-      showAvatar: true,
-      avatar: logo, 
-      buttons: ["CLOSE_CHAT_BUTTON"], 
-    },
-    botBubble: {
-      showAvatar: true,
-      avatar: logo, 
-    },
-    chatButton: {
-      icon: logo, 
-    },
-    tooltip: {
-      mode: "CLOSE",
-    }
+    theme: { primaryColor: "#d97757", secondaryColor: "#334138", showFooter: false },
+    header: { title: "Terra AI", showAvatar: true, avatar: logo, buttons: ["CLOSE_CHAT_BUTTON"] },
+    botBubble: { showAvatar: true, avatar: logo },
+    chatButton: { icon: logo },
+    tooltip: { mode: "CLOSE" }
   };
 
   return <ChatBot flow={flow} options={options} />;
