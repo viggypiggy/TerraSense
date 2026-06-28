@@ -4,6 +4,8 @@ import logo from '../logo.svg';
 
 const TerraAI = () => {
   const conversationLog = useRef([]);
+  // 1. ADD THIS: A flag to track if we've already notified you
+  const hasSentEmail = useRef(false);
 
   const flow = {
     start: {
@@ -25,12 +27,19 @@ const TerraAI = () => {
           const data = await response.json();
           if (!response.ok) return `System Alert: ${data.error || 'Server error.'}`;
 
-          // 1. Update the conversation
           const botReply = data.reply;
           conversationLog.current.push({ role: "Terra AI", text: botReply });
 
-          // 2. If the backend found a lead, submit it to Web3Forms from the BROWSER
-          if (data.leadData) {
+          // 2. MODIFIED: Only send if we found a lead AND we haven't sent an email yet
+          if (data.leadData && !hasSentEmail.current) {
+            
+            // Flip the switch so it doesn't send again
+            hasSentEmail.current = true;
+
+            const transcript = conversationLog.current
+              .map(entry => `${entry.role}: ${entry.text}`)
+              .join('\n');
+
             await fetch("https://api.web3forms.com/submit", {
               method: "POST",
               headers: { "Content-Type": "application/json", "Accept": "application/json" },
@@ -39,7 +48,7 @@ const TerraAI = () => {
                 name: data.leadData.name,
                 phone: data.leadData.phone,
                 subject: `🌿 Lead Alert: ${data.leadData.name}`,
-                message: `👤 Name: ${data.leadData.name}\n📞 Phone: ${data.leadData.phone}\n🧠 Insights: ${data.leadData.insights}`
+                message: `👤 Name: ${data.leadData.name}\n📞 Phone: ${data.leadData.phone}\n🧠 Insights: ${data.leadData.insights}\n\n💬 Full Conversation:\n${transcript}`
               }),
             });
           }
