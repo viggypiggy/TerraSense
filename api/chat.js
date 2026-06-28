@@ -1,25 +1,25 @@
 export default async function handler(req, res) {
-  // 1. HTTP Method Guard (Security Standard)
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
 
   const { history } = req.body;
   
-  // 2. Environment Variable Fallback Chain (Resilience)
-  // This ensures that even if there is a slight typo in your Vercel dashboard keys, the backend still finds it.
+  // GROQ is a true secret key, so it must stay in Vercel's environment variables.
   const groqKey = process.env.GROQ_API_KEY; 
-  const w3formsKey = process.env.REACT_APP_W3FORMS_KEY;
+  
+  // Web3Forms Access Keys are PUBLIC form IDs. It is 100% safe to hardcode this.
+  // This permanently fixes Vercel failing to read the environment variable.
+  const w3formsKey = "94d28d63-f284-4a3b-85f0-1644327ed03a";
 
   if (!history || !Array.isArray(history)) {
     return res.status(400).json({ error: 'Invalid chat history format.' });
   }
+
   if (!groqKey) {
-    console.error('CRITICAL: Missing Groq API Key in environment variables.');
     return res.status(500).json({ error: 'Server configuration error.' });
   }
 
-  // 3. AI Persona & Prompt Engineering (The Consultative Closer)
   const systemPrompt = `You are Terra AI, the lead client advisor for TerraSense in Bengaluru. You are a highly professional, empathetic, and effective consultative salesperson.
 
   STRICT RULES:
@@ -39,82 +39,88 @@ export default async function handler(req, res) {
   ];
 
   try {
-    // 4. Generate the AI Response
     const chatResponse = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${groqKey}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
         model: 'llama-3.3-70b-versatile',
         messages: messages,
-        temperature: 0.3, // Low variance keeps the salesperson focused and professional
+        temperature: 0.3,
         max_tokens: 250
       })
     });
 
-    if (!chatResponse.ok) {
-      throw new Error(`Groq API Error: ${chatResponse.statusText}`);
-    }
-
+    if (!chatResponse.ok) throw new Error(`Groq Error: ${chatResponse.statusText}`);
     const chatData = await chatResponse.json();
     const botReply = chatData.choices[0].message.content;
 
-    // 5. Intelligent Lead Extraction (Silent Analysis)
-    const extractionPrompt = `Analyze this chat log. Did the user provide their name and a valid phone number (at least 6 digits)? 
-    Respond ONLY with a valid JSON object matching this schema:
-    {
-      "name": "Extracted Name or 'Not Provided'",
-      "phone": "Extracted Phone or 'Not Provided'",
-      "insights": "1 brief sentence summarizing their space and needs."
+    const fullChatText = history.map(e => e.text).join(' ') + ' ' + botReply;
+    const containsDigits = /\d{5,}/.test(fullChatText);
+
+    if (containsDigits) {
+      try {
+        const extractionPrompt = `Analyze this chat log. Did the user provide their name and a valid phone number (at least 6 digits)? 
+        Respond ONLY with a valid JSON object matching this schema:
+        {
+          "name": "Extracted Name or 'Not Provided'",
+          "phone": "Extracted Phone or 'Not Provided'",
+          "insights": "1 brief sentence summarizing their space and needs."
+        }
+        
+        Chat Log:\n${history.map(entry => `${entry.role}: ${entry.text}`).join('\n')}\nTerra AI: ${botReply}`;
+
+        const extractResponse = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${groqKey}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            model: 'llama-3.3-70b-versatile',
+            messages: [{ role: "user", content: extractionPrompt }],
+            temperature: 0.1,
+            response_format: { type: "json_object" }
+          })
+        });
+
+        if (extractResponse.ok) {
+          const extractData = await extractResponse.json();
+          const extractedMeta = JSON.parse(extractData.choices[0].message.content);
+
+          const phoneStr = String(extractedMeta.phone).toLowerCase().trim();
+          const isPhoneProvided = phoneStr !== "not provided" && phoneStr !== "null" && phoneStr.length > 5;
+
+          if (isPhoneProvided) {
+            const cleanLog = history.map(entry => `${entry.role}: ${entry.text}`).join('\n\n') + `\n\nTerra AI: ${botReply}`;
+            
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 3000);
+
+            // Using the official, corrected Web3Forms endpoint
+            const w3Res = await fetch("https://api.web3forms.com/submit", {
+              method: "POST",
+              headers: { "Content-Type": "application/json", Accept: "application/json" },
+              signal: controller.signal,
+              body: JSON.stringify({
+                access_key: w3formsKey,
+                name: extractedMeta.name !== "Not Provided" ? extractedMeta.name : "New TerraSense Lead",
+                email: "leads@terrasense.in",
+                to_email: "vignesh@terrasense.in",
+                subject: `🌿 Lead Alert: ${extractedMeta.name !== "Not Provided" ? extractedMeta.name : "New Client"}`,
+                message: `👤 Name: ${extractedMeta.name}\n📞 Phone: ${extractedMeta.phone}\n🧠 Insights: ${extractedMeta.insights}\n\n💬 Transcript:\n${cleanLog}`
+              }),
+            });
+            
+            clearTimeout(timeoutId);
+            if (!w3Res.ok) console.error('Web3Forms rejected payload:', await w3Res.text());
+          }
+        }
+      } catch (innerError) {
+        console.error("Non-blocking lead processing error:", innerError);
+      }
     }
-    
-    Chat Log:\n${history.map(entry => `${entry.role}: ${entry.text}`).join('\n')}\nTerra AI: ${botReply}`;
 
-    const extractResponse = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${groqKey}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'llama-3.3-70b-versatile',
-        messages: [{ role: "user", content: extractionPrompt }],
-        temperature: 0.1, // Near-zero for strict, deterministic JSON parsing
-        response_format: { type: "json_object" }
-      })
-    });
-
-    const extractData = await extractResponse.json();
-    const extractedMeta = JSON.parse(extractData.choices[0].message.content);
-
-    // 6. Lead Routing Logic (The Trigger)
-    const phoneStr = String(extractedMeta.phone).toLowerCase().trim();
-    const isPhoneProvided = phoneStr !== "not provided" && phoneStr !== "null" && phoneStr.length > 5;
-
-    // 7. Data Dispatch via W3Forms
-    if (isPhoneProvided && w3formsKey) {
-      const cleanLog = history.map(entry => `${entry.role}: ${entry.text}`).join('\n\n') + `\n\nTerra AI: ${botReply}`;
-      
-      const w3Payload = {
-        access_key: w3formsKey,
-        name: extractedMeta.name !== "Not Provided" ? extractedMeta.name : "New TerraSense Lead",
-        email: "leads@terrasense.in", // The required fallback to bypass the 400 error
-        to_email: "vignesh@terrasense.in",
-        subject: `🌿 Lead Alert: ${extractedMeta.name !== "Not Provided" ? extractedMeta.name : "New Client"}`,
-        message: `👤 Name: ${extractedMeta.name}\n📞 Phone: ${extractedMeta.phone}\n🧠 Insights: ${extractedMeta.insights}\n\n💬 Transcript:\n${cleanLog}`
-      };
-
-      const w3Res = await fetch("https://api.w3forms.com/submit", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Accept: "application/json" },
-        body: JSON.stringify(w3Payload),
-      });
-
-      // Silent error logging to Vercel so the user experience isn't interrupted
-      if (!w3Res.ok) console.error('W3Forms rejection:', await w3Res.text());
-    }
-
-    // 8. Deliver final message to frontend
     return res.status(200).json({ reply: botReply });
 
   } catch (error) {
-    console.error('Backend Architecture Error:', error);
+    console.error('Critical Architecture Error:', error);
     return res.status(500).json({ error: 'System processing error.' });
   }
 }
