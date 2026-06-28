@@ -23,7 +23,6 @@ export default async function handler(req, res) {
   ];
 
   try {
-    // 3. Call the ultra-fast Groq LPU Network
     const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -31,7 +30,7 @@ export default async function handler(req, res) {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        model: 'llama3-70b-8192', // Meta's flagship Llama 3 model
+        model: 'llama-3.3-70b-versatile', // 🚀 THE FIX: Upgraded to Groq's active Llama 3.3 model
         messages: messages,
         temperature: 0.7,
         max_tokens: 500
