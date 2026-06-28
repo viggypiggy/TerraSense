@@ -8,13 +8,12 @@ export default async function handler(req, res) {
   
   // 2. Environment Variable Fallback Chain (Resilience)
   // This ensures that even if there is a slight typo in your Vercel dashboard keys, the backend still finds it.
-  const groqKey = process.env.GROQ_API_KEY || process.env.GROQ__KEY; 
-  const w3formsKey = process.env.REACT_APP_M3FORMS_KEY || process.env.REACT_APP_W3FORMS_KEY || process.env.WEB3F__KEY;
+  const groqKey = process.env.GROQ_API_KEY; 
+  const w3formsKey = process.env.REACT_APP_W3FORMS_KEY;
 
   if (!history || !Array.isArray(history)) {
     return res.status(400).json({ error: 'Invalid chat history format.' });
   }
-
   if (!groqKey) {
     console.error('CRITICAL: Missing Groq API Key in environment variables.');
     return res.status(500).json({ error: 'Server configuration error.' });
