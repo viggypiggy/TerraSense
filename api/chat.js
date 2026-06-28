@@ -7,7 +7,6 @@ export default async function handler(req, res) {
   const groqKey = process.env.GROQ_API_KEY || process.env.REACT_APP_GROQ_API_KEY;
   // Using the exact key that currently works for your modal!
   const w3formsKey = process.env.REACT_APP_W3FORMS_KEY; 
-
   if (!groqKey) {
     return res.status(500).json({ error: 'Missing Groq API Key configuration.' });
   }
