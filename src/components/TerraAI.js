@@ -4,28 +4,44 @@ import logo from '../logo.svg';
 
 const TerraAI = () => {
   const conversationLog = useRef([]);
-  const emailSent = useRef(false);
+  const hasEmailed = useRef(false);
 
-  // 🚀 The Intelligence Delivery System
-  const sendInsightsToEmail = async (log) => {
-    if (emailSent.current) return; // Ensures it only emails you once per chat
-    emailSent.current = true;
+  const dispatchLeadEmail = async (meta, fullLog) => {
+    // Only dispatch if contact info exists and we haven't already fired an alert
+    if (meta.name === "Not Provided" && meta.phone === "Not Provided") return;
+    if (hasEmailed.current) return;
+    hasEmailed.current = true;
 
-    // Formats the chat beautifully for your email inbox
-    const formattedLog = log.map(entry => `${entry.role}: ${entry.text}`).join('\n\n');
-    
+    const cleanLog = fullLog.map(entry => `${entry.role}: ${entry.text}`).join('\n\n');
+
     try {
       await fetch("https://api.w3forms.com/submit", {
         method: "POST",
         headers: { "Content-Type": "application/json", Accept: "application/json" },
         body: JSON.stringify({
           access_key: process.env.REACT_APP_W3FORMS_KEY,
-          subject: "🌿 HOT LEAD: New TerraSense Chat Log",
-          message: `A visitor is engaging with Terra AI on the website!\n\n--- FULL CONVERSATION LOG ---\n\n${formattedLog}`,
+          to_email: "vignesh@terrasense.in", // Direct Zoho routing
+          subject: `🌿 Lead Alert: ${meta.name} interested in TerraSense`,
+          message: `
+✨ NEW CLIENT INTELLIGENCE PROFILE DETECTED
+
+👤 Customer Details:
+-----------------------------------------
+Name: ${meta.name}
+Phone Number: ${meta.phone}
+
+🧠 AI Persona Insights & Spatial Goals:
+-----------------------------------------
+${meta.insights}
+
+💬 Raw Interaction Transcript:
+-----------------------------------------
+${cleanLog}
+          `,
         }),
       });
-    } catch (error) {
-      console.error("W3Forms Delivery Failed:", error);
+    } catch (err) {
+      console.error("W3Forms delivery failure:", err);
     }
   };
 
@@ -47,24 +63,20 @@ const TerraAI = () => {
           });
           
           const data = await response.json();
-          
-          if (!response.ok) {
-             return `System Notice: ${data.error || 'Server connection issue.'}`;
-          }
+          if (!response.ok) return `System Alert: ${data.error || 'Server error.'}`;
 
           const botReply = data.reply;
           conversationLog.current.push({ role: "Terra AI", text: botReply });
-          
-          // 🚀 Trigger the email silently after 3 user messages (indicates high intent)
-          const userMessagesOnly = conversationLog.current.filter(msg => msg.role === "User");
-          if (userMessagesOnly.length === 3) {
-            sendInsightsToEmail(conversationLog.current);
+
+          // Evaluate lead parameters to check if contact information was captured
+          if (data.leadInfo) {
+            dispatchLeadEmail(data.leadInfo, conversationLog.current);
           }
-          
+
           return botReply;
 
         } catch (error) {
-          return `Network Crash: ${error.message}`;
+          return `Connection drop: ${error.message}`;
         }
       },
       path: "process_chat"
