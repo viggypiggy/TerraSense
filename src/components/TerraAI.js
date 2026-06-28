@@ -25,8 +25,24 @@ const TerraAI = () => {
           const data = await response.json();
           if (!response.ok) return `System Alert: ${data.error || 'Server error.'}`;
 
+          // 1. Update the conversation
           const botReply = data.reply;
           conversationLog.current.push({ role: "Terra AI", text: botReply });
+
+          // 2. If the backend found a lead, submit it to Web3Forms from the BROWSER
+          if (data.leadData) {
+            await fetch("https://api.web3forms.com/submit", {
+              method: "POST",
+              headers: { "Content-Type": "application/json", "Accept": "application/json" },
+              body: JSON.stringify({
+                access_key: "94d28d63-f284-4a3b-85f0-1644327ed03a",
+                name: data.leadData.name,
+                phone: data.leadData.phone,
+                subject: `🌿 Lead Alert: ${data.leadData.name}`,
+                message: `👤 Name: ${data.leadData.name}\n📞 Phone: ${data.leadData.phone}\n🧠 Insights: ${data.leadData.insights}`
+              }),
+            });
+          }
 
           return botReply;
 
