@@ -42,20 +42,28 @@ const TerraAI = () => {
     }
   };
 
-  const options = {
+    const options = {
     theme: {
       primaryColor: "#d97757", 
       secondaryColor: "#334138",
-      showFooter: false, // 🚀 COMPLETELY removes the "Powered by React Chatbotify" branding
+      showFooter: false, 
     },
     header: {
       title: "Terra AI", 
       showAvatar: true,
-      avatar: logo, // 🚀 Uses your TerraSense logo
+      avatar: logo, 
     },
     botBubble: {
       showAvatar: true,
-      avatar: logo, // 🚀 Uses your TerraSense logo for bot messages
+      avatar: logo, 
+    },
+    // 🚀 NEW: Replaces the default paper airplane with your logo
+    chatButton: {
+      icon: logo, 
+    },
+    // 🚀 NEW: Removes the annoying text bubble and red notification dot next to the button
+    tooltip: {
+      mode: "CLOSE",
     }
   };
 
