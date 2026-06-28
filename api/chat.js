@@ -12,17 +12,25 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'Vercel cannot find the Gemini API Key. Please check Environment Variables.' });
   }
 
+  // 🚀 THE FIX: Invisibly inject the persona into the very first message to bypass version blocks
+  const formattedHistory = history.map((entry, index) => {
+    let text = entry.text;
+    if (index === 0 && entry.role === "User") {
+      text = `[SYSTEM PERSONA INSTRUCTIONS: ${systemPrompt}]\n\nUser says: ${text}`;
+    }
+    return {
+      role: entry.role === "User" ? "user" : "model",
+      parts: [{ text: text }]
+    };
+  });
+
   try {
-    // THE FIX: Updated the URL to explicitly call 'gemini-1.5-flash-latest'
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`, {
+    // 🚀 THE FIX: 'gemini-pro' is the universal standard that works on every single API key
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        system_instruction: { parts: [{ text: systemPrompt }] },
-        contents: history.map(entry => ({
-          role: entry.role === "User" ? "user" : "model",
-          parts: [{ text: entry.text }]
-        }))
+        contents: formattedHistory
       })
     });
 
